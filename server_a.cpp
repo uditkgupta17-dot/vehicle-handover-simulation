@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <chrono>
 
 using namespace std;
 
@@ -11,6 +12,7 @@ struct frame {
     int frameid;
     int handover;
     char sensorp[32];
+    long long time;
 };
 
 int main() {
@@ -42,7 +44,11 @@ int main() {
         packet.handover = boundary; 
         strcpy(packet.sensorp, payloads[i-2]);
 
-        cout << "Sending Frame " << packet.frameid << " with boundary flag " << packet.handover << endl;
+        auto now = chrono::high_resolution_clock::now();
+        
+        packet.time = chrono::duration_cast<chrono::microseconds>(now.time_since_epoch()).count();
+
+        cout << "Sending Frame " << packet.frameid << " with timestamp: " << packet.time << endl;
         
         sendto(socketid, &packet, sizeof(packet), 0,(struct sockaddr*)&targetid, sizeof(targetid));
 

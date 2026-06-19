@@ -4,6 +4,7 @@
 #include<cstring>
 #include<sys/socket.h>
 #include<unistd.h>
+#include <chrono>
 
 using namespace std;
 
@@ -11,6 +12,7 @@ struct frame{
     int frameid;
     int handover;
     char sensorp[32];
+    long long time;
 };
 
 int main(){
@@ -52,10 +54,19 @@ int main(){
     while(pac_process < 3){
         recvfrom(socketid , &in_pac ,sizeof(in_pac) ,0, (struct sockaddr*)&veh, &addlen);
 
-        cout << "[Network] Got Frame ID: " << in_pac.frameid << " | Payload: " << in_pac.sensorp << endl;
+        cout << "\n Network Overhead: Received Packet. Size = " << sizeof(in_pac) << " bytes." << endl;
+
+        cout << "Got Frame ID: " << in_pac.frameid << " ,Payload: " << in_pac.sensorp << endl;
 
         queue[in_pac.frameid] = string(in_pac.sensorp);
         boundary_index = in_pac.handover;
+
+        auto recv_time = chrono::high_resolution_clock::now();
+        long long current_micros = chrono::duration_cast<chrono::microseconds>(recv_time.time_since_epoch()).count();
+
+        long long latency = current_micros - in_pac.time;
+        
+        cout << "Handover Latency for Frame " << in_pac.frameid << ": " << latency << " microseconds (" << (double)latency/1000.0 << " ms)" << endl;
 
         pac_process++;
     }

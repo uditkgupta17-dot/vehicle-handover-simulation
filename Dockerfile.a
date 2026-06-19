@@ -1,0 +1,5 @@
+FROM gcc:latest
+WORKDIR /app
+COPY server_a.cpp .
+RUN g++ -std=c++11 server_a.cpp -o server_a
+CMD ["./server_a"]

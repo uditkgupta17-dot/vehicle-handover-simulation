@@ -1,5 +1,23 @@
-FROM gcc:latest
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    g++ \
+    libprotobuf-dev \
+    protobuf-compiler \
+    pkg-config \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-COPY server_a.cpp .
-RUN g++ -std=c++11 server_a.cpp -o server_a
+
+COPY server_a.cpp .  
+COPY custom_payload.proto .
+COPY scenario3.csv . 
+
+RUN protoc --cpp_out=. custom_payload.proto
+
+RUN g++ -std=c++17 server_a.cpp custom_payload.pb.cc -o server_a $(pkg-config --cflags --libs protobuf)
+
 CMD ["./server_a"]

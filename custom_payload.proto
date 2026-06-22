@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package edgesim;
+
+
+message VehicleMetadata {
+  int32 frame_id = 1;          
+  int32 handover_status = 2;   
+  string sensor_path = 3;      
+  int64 timestamp_ns = 4;      
+  float simulated_rssi = 5;   
+}

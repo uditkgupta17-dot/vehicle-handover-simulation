@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: server-b-deployment
 spec:
-  replicas: 1  # Tells K8s to keep exactly 1 copy of Server B running
+  replicas: 1  
   selector:
     matchLabels:
       app: edge-server-b
@@ -14,21 +14,43 @@ spec:
     spec:
       containers:
       - name: server-b-container
-        image: my_server_b:v2      # Added :latest here
-        imagePullPolicy: IfNotPresent  # Tells K8s to look for the image locally on your Mac
+        image: my_server_b:v9    
+        imagePullPolicy: IfNotPresent     
         ports:
         - containerPort: 8080
-          protocol: UDP  # Crucial! Our socket is SOCK_DGRAM (UDP)
+          protocol: UDP  
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: server-b-service
 spec:
-  type: LoadBalancer  # Exposes the port directly to your Mac's localhost
+  type: LoadBalancer  
   selector:
     app: edge-server-b
   ports:
-    - port: 8080        # The port Server A will target
-      targetPort: 8080  # The port Server B is listening on inside the container
+    - port: 8080        
+      targetPort: 8080  
       protocol: UDP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-a-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-server-a
+  template:
+    metadata:
+      labels:
+        app: edge-server-a
+    spec:
+      containers:
+      - name: server-a-container
+        image: my_server_a:v9    
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SERVER_B_HOST
+          value: "server-b-service"

@@ -1,12 +1,51 @@
 syntax = "proto3";
-
 package edgesim;
 
-
 message VehicleMetadata {
-  int32 frame_id = 1;          
-  int32 handover_status = 2;   
-  string sensor_path = 3;      
-  int64 timestamp_ns = 4;      
-  float simulated_rssi = 5;   
+    int32 frame_id = 1;
+    int32 handover_status = 2;
+    string sensor_path = 3;
+    int64 timestamp_ns = 4;
+    double simulated_rssi = 5; 
+
+    // --- NEW METHOD B & C IDENTIFIERS ---
+    int32 task_type = 6;          // 0 for Compute (Method C), 1 for Video/Entertainment (Method B)
+    string requested_file_id = 7; 
+    int32 file_size_mb = 8;       
+
+    // --- NEW TELEMETRY IDENTIFIERS ---
+    int32 sequence_number = 9;    // Tracks lost or stale packets
+    bool is_handover_packet = 10; // Flags the critical handover moment for downtime
+    double vehicle_speed_kmh = 11; // Real vehicle speed, needed by Server B's Context Monitor
+
+    // --- EXECUTION CONTINUITY DECISION ENGINE CONTROL PACKET ---
+    // Sent by Action Executor instead of a raw frame; never carries a full
+    // process/checkpoint image, only the strategy-specific metadata below.
+    bool is_control_packet = 12;
+    int32 continuity_action = 13; // mirrors ContinuityDecision enum in decision_engine.h
+    string state_payload = 14;    // minimal strategy-specific metadata (never execution memory)
+
+    // --- BOUNDARY SYNCHRONIZATION ---
+    // Sent by Server A over the SAME data channel (never a new socket)
+    // whenever the adaptive ceiling changes, so Server B's offload_count/
+    // start-frame bookkeeping never drifts from what Server A actually
+    // decided. Reuses handover_status (new start_frame_id) and
+    // file_size_mb (new total expected count) - the same two fields the
+    // handover sentinel already carries - so no new numeric fields are
+    // needed, only this one flag.
+    bool is_boundary_update = 15;
+}
+
+// --- VEHICLE CONTROLLER LIVE COMMAND ---
+// Sent by the standalone vehicle_controller tool to whichever server(s) are
+// listening on the control port. Never carries application data; only
+// updates the live context (speed/traffic/failure) that the Context
+// Monitor reads on its next sample.
+message ControllerCommand {
+    string command    = 1; // "speed" | "traffic" | "fail"
+    double value       = 2; // speed: km/h : traffic: 0-100 load level
+    string fault_name = 3; // for "fail": bandwidth_drop | packet_loss_spike | cpu_overload |
+                            // memory_shortage | vehicle_exit_early | prediction_failure | server_unavailable
+    bool   enable      = 4; // for "fail": true = force on, false = force off
+    int64  timestamp_ns = 5;
 }

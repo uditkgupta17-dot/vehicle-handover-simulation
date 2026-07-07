@@ -1,0 +1,24 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    g++ \
+    libprotobuf-dev \
+    protobuf-compiler \
+    pkg-config \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY vehicle_controller.cpp .
+COPY custom_payload.proto .
+
+RUN protoc --cpp_out=. custom_payload.proto
+
+RUN g++ -std=c++17 vehicle_controller.cpp custom_payload.pb.cc \
+    -o vehicle_controller $(pkg-config --cflags --libs protobuf)
+
+# Interactive REPL - run with `docker run -it` and SERVER_A_HOST/SERVER_B_HOST set.
+CMD ["./vehicle_controller"]

@@ -14,23 +14,24 @@ spec:
     spec:
       containers:
       - name: server-b-container
-        image: my_server_b:v9    
-        imagePullPolicy: IfNotPresent     
+        image: my_server_b:v103
+        imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 8080
-          protocol: UDP  
+        - containerPort: 8080   # application data only - Server B never binds the controller port
+          protocol: UDP
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: server-b-service
 spec:
-  type: LoadBalancer  
+  type: LoadBalancer
   selector:
     app: edge-server-b
   ports:
-    - port: 8080        
-      targetPort: 8080  
+    - name: data
+      port: 8080
+      targetPort: 8080
       protocol: UDP
 ---
 apiVersion: apps/v1
@@ -49,8 +50,51 @@ spec:
     spec:
       containers:
       - name: server-a-container
-        image: my_server_a:v9    
+        image: my_server_a:v103
         imagePullPolicy: IfNotPresent
+        command: ["sleep", "infinity"]
+        ports:
+        - containerPort: 8080
+          protocol: UDP
+        - containerPort: 9090   # Vehicle Controller live commands
+          protocol: UDP
         env:
         - name: SERVER_B_HOST
           value: "server-b-service"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-a-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: edge-server-a
+  ports:
+    - name: controller
+      port: 9090
+      targetPort: 9090
+      protocol: UDP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vehicle-controller-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vehicle-controller
+  template:
+    metadata:
+      labels:
+        app: vehicle-controller
+    spec:
+      containers:
+      - name: vehicle-controller-container
+        image: my_vehicle_controller:v103
+        imagePullPolicy: IfNotPresent
+        command: ["sleep", "infinity"]  # exec in with `kubectl exec -it ... -- ./vehicle_controller`
+        env:
+        - name: SERVER_A_HOST  # the only server the controller ever talks to
+          value: "server-a-service"

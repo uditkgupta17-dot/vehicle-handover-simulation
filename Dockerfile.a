@@ -12,12 +12,36 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY server_a.cpp .  
+COPY server_a.cpp .
 COPY custom_payload.proto .
-COPY scenario3.csv . 
+COPY scenario3.csv .
+COPY scenario.conf .
+COPY context_vector.h .
+COPY context_monitor.h .
+COPY scenario_config.h .
+COPY scenario_config.cpp .
+COPY state_analyzer.h .
+COPY state_analyzer.cpp .
+COPY decision_engine.h .
+COPY decision_engine.cpp .
+COPY action_executor.h .
+COPY action_executor.cpp .
+COPY csv_logger.h .
+COPY csv_logger.cpp .
+COPY failure_injector.h .
+COPY failure_injector.cpp .
+COPY traffic_load.h .
+COPY traffic_load.cpp .
 
 RUN protoc --cpp_out=. custom_payload.proto
 
-RUN g++ -std=c++17 server_a.cpp custom_payload.pb.cc -o server_a $(pkg-config --cflags --libs protobuf)
+RUN g++ -std=c++17 server_a.cpp custom_payload.pb.cc \
+    scenario_config.cpp state_analyzer.cpp decision_engine.cpp \
+    action_executor.cpp csv_logger.cpp failure_injector.cpp traffic_load.cpp \
+    -o server_a $(pkg-config --cflags --libs protobuf)
+
+# UDP 8080 = application data path (unchanged); UDP 9090 = Vehicle Controller
+EXPOSE 8080/udp
+EXPOSE 9090/udp
 
 CMD ["./server_a"]
